@@ -13,17 +13,13 @@ import org.apache.poi.xssf.usermodel.DefaultIndexedColorMap
 import org.apache.poi.xssf.usermodel.XSSFCellStyle
 import org.apache.poi.xssf.usermodel.XSSFColor
 import java.io.OutputStream
-import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
-import java.util.concurrent.Future
 import java.util.concurrent.LinkedBlockingQueue
-import java.util.concurrent.TimeUnit
-import java.util.concurrent.atomic.AtomicInteger
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
 import kotlin.system.measureTimeMillis
 
-class ExcelWriter<out T : ExcelWriteModel>(
+class ExcelStreamWriter<out T : ExcelWriteModel>(
     private val producer: AbstractExcelJdbcProducer,
     type: KClass<out T>,
     private val password: String? = null
@@ -31,7 +27,6 @@ class ExcelWriter<out T : ExcelWriteModel>(
     private val properties: List<KProperty1<out T, *>> = ExcelWriteModelReflectionUtils.getSortedProperties(type)
     private val workbook = SXSSFWorkbook(1000)
     private val sheet: Sheet = workbook.createSheet("sheet1")
-    private val cellStyle = (workbook.createCellStyle() as XSSFCellStyle).applyBorderThin()
 
     private val logger = KotlinLogging.logger {}
 
@@ -73,41 +68,33 @@ class ExcelWriter<out T : ExcelWriteModel>(
 
     private fun renderBody() {
         val totalCount = producer.totalCount()
-        val latch = CountDownLatch(totalCount)
-        println(">> totalCount = $totalCount")
+        logger.info("[엑셀 데이터 totalCount: {$totalCount}]")
 
         val elapsed = measureTimeMillis {
             val queue = LinkedBlockingQueue<ExcelWriteModel>(100)
 
-            val dbExecutor = Executors.newSingleThreadExecutor()
+            val producerExecutor = Executors.newSingleThreadExecutor()
             producer.queue = queue
-            val producerFuture = dbExecutor.submit(producer)
+            val producerFuture = producerExecutor.submit(producer)
 
-            val numberOfThread = 1
-            val excelExecutor = Executors.newFixedThreadPool(numberOfThread)
-
-            val consumers = ArrayList<ExcelBodyConsumer<ExcelWriteModel>>()
-            val consumerFutures = ArrayList<Future<AtomicInteger>>()
-
-            repeat((1..numberOfThread).count()) {
-                val excelConsumer = ExcelBodyConsumer(
-                    queue = queue,
-                    sheet = sheet,
-                    cellStyle = cellStyle,
-                    properties = properties,
-                )
-                consumers.add(excelConsumer)
-                consumerFutures.add(excelExecutor.submit(excelConsumer))
-            }
-            producerFuture.get()
+            val consumerExecutor = Executors.newSingleThreadExecutor()
+            val excelConsumer = ExcelBodyConsumer(
+                queue = queue,
+                sheet = sheet,
+                cellStyle = (workbook.createCellStyle() as XSSFCellStyle).applyBorderThin(),
+                properties = properties,
+            )
+            val consumerFuture = consumerExecutor.submit(excelConsumer)
 
             // consumer 에게 DB 조회 producer 종료 알림
-            consumers.forEach(ExcelBodyConsumer<ExcelWriteModel>::producerComplete)
-            consumerFutures.forEach(Future<AtomicInteger>::get)
+            val producerCount = producerFuture.get()
+            logger.info("[엑셀 Producer Count: {$producerCount}]")
+            excelConsumer.producerComplete()
 
-            latch.await(10, TimeUnit.MINUTES)
+            val consumerCount = consumerFuture.get()
+            logger.info("[엑셀 Consumer Count: {$consumerCount}]")
         }
-        println("다운로드 걸린 시간: $elapsed 밀리초")
+        logger.info("[엑셀 생성 걸린 시간: {$elapsed} 밀리초]")
     }
 
     private fun renderHeader() {

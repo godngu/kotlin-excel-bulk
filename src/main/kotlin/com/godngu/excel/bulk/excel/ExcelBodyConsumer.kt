@@ -1,17 +1,13 @@
-package com.godngu.excel.bulk.board
+package com.godngu.excel.bulk.excel
 
-import com.godngu.excel.bulk.excel.ExcelWriteModel
-import com.godngu.excel.bulk.excel.ExcelWriteModelReflectionUtils
 import mu.KotlinLogging
 import org.apache.poi.ss.usermodel.Row
 import org.apache.poi.ss.usermodel.Sheet
 import org.apache.poi.xssf.usermodel.XSSFCellStyle
 import java.util.concurrent.Callable
-import java.util.concurrent.CountDownLatch
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
-import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
 import kotlin.reflect.KType
 import kotlin.reflect.full.createType
@@ -23,7 +19,6 @@ class ExcelBodyConsumer<out T : ExcelWriteModel>(
     private val sheet: Sheet,
     private val cellStyle: XSSFCellStyle,
     private val properties: List<KProperty1<out T, *>>,
-    val latch: CountDownLatch
 ) : Callable<AtomicInteger> {
 
     private val logger = KotlinLogging.logger {}
@@ -33,15 +28,13 @@ class ExcelBodyConsumer<out T : ExcelWriteModel>(
 
         while (true) {
             if (producerCompleted && queue.isEmpty()) {
-                logger.info(">>> {${Thread.currentThread().name}} 종료!!")
+                logger.info("[엑셀 컨슈머 ${Thread.currentThread().name} 종료!!]")
                 break
             }
 
             val model: ExcelWriteModel = queue.poll(1, TimeUnit.SECONDS) ?: continue
 
             count.getAndIncrement()
-            latch.countDown()
-
             renderExcelRow(model)
         }
 
@@ -49,7 +42,6 @@ class ExcelBodyConsumer<out T : ExcelWriteModel>(
     }
 
     private fun renderExcelRow(model: ExcelWriteModel) {
-        println(">> SEQ = ${model.seq}")
         val row = sheet.createRow(model.seq)
 
         properties.forEachIndexed { cellIndex, property ->

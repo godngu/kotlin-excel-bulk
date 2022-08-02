@@ -13,12 +13,12 @@ class BoardController(
     private val boardService: BoardService,
 ) {
 
-    @PostConstruct
-    fun bulkInsert() {
-        (1..100).forEach {
-            boardEntityRepository.save(BoardEntity("title_$it", "content_$it"))
-        }
-    }
+//    @PostConstruct
+//    fun bulkInsert() {
+//        (1..100).forEach {
+//            boardEntityRepository.save(BoardEntity("title_$it", "content_$it"))
+//        }
+//    }
 
     @GetMapping("/hello")
     fun hello() = "hello"

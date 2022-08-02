@@ -3,11 +3,12 @@ package com.godngu.excel.bulk.board
 import com.godngu.excel.bulk.excel.AbstractExcelJdbcProducer
 import com.godngu.excel.bulk.excel.ExcelWriteModel
 import org.springframework.jdbc.core.JdbcTemplate
+import org.springframework.jdbc.core.RowMapper
 import java.util.concurrent.atomic.AtomicInteger
-import java.util.stream.Stream
 
-class ExcelBoardProducer<out T : ExcelWriteModel>(
-    override val jdbcTemplate: JdbcTemplate
+class ExcelBoardProducer(
+    override val jdbcTemplate: JdbcTemplate,
+    override val rowMapper: RowMapper<ExcelWriteModel>,
 ): AbstractExcelJdbcProducer() {
 
     override fun totalCount(): Int {
@@ -19,7 +20,7 @@ class ExcelBoardProducer<out T : ExcelWriteModel>(
         val count = AtomicInteger()
 
         val sql = "select rownum as seq, board_id, title, content from board order by board_id desc"
-        val stream: Stream<ExcelWriteModel> = jdbcTemplate.queryForStream(sql, BoardMapper())
+        val stream = jdbcTemplate.queryForStream(sql, rowMapper)
         stream.forEach {
             count.getAndIncrement()
             queue.put(it)
