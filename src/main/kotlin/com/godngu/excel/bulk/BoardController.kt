@@ -1,16 +1,16 @@
 package com.godngu.excel.bulk
 
-import com.godngu.excel.bulk.board.BoardEntity
 import com.godngu.excel.bulk.board.BoardEntityRepository
 import com.godngu.excel.bulk.board.BoardService
+import com.godngu.excel.bulk.order.OrderService
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RestController
-import javax.annotation.PostConstruct
 
 @RestController
 class BoardController(
     private val boardEntityRepository: BoardEntityRepository,
     private val boardService: BoardService,
+    private val orderService: OrderService,
 ) {
 
 //    @PostConstruct
@@ -25,6 +25,6 @@ class BoardController(
 
     @GetMapping("/")
     fun main() {
-        boardService.excelDownload()
+        orderService.excelDownload()
     }
 }

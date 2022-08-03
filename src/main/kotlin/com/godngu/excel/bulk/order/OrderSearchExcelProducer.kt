@@ -1,28 +1,25 @@
-package com.godngu.excel.bulk.board
+package com.godngu.excel.bulk.order
 
 import com.godngu.excel.bulk.excel.AbstractExcelJdbcProducer
 import com.godngu.excel.bulk.excel.ExcelWriteModel
-import com.godngu.excel.bulk.order.SqlWhereClause
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.jdbc.core.RowMapper
 import java.util.concurrent.atomic.AtomicInteger
 
-class ExcelBoardProducer(
+class OrderSearchExcelProducer(
     override val jdbcTemplate: JdbcTemplate,
     override val rowMapper: RowMapper<ExcelWriteModel>,
     override val whereClause: SqlWhereClause,
-): AbstractExcelJdbcProducer() {
+) : AbstractExcelJdbcProducer() {
 
     override fun totalCount(): Int {
-        val sql = "select count(*) from board"
-        return jdbcTemplate.queryForObject(sql, Int::class.java) ?: 0
+        return jdbcTemplate.queryForObject(SearchOrderSql.createTotalCountSql(whereClause), Int::class.java) ?: 0
     }
 
     override fun call(): AtomicInteger {
         val count = AtomicInteger()
 
-        val sql = "select rownum as seq, board_id, title, content from board order by board_id desc"
-        val stream = jdbcTemplate.queryForStream(sql, rowMapper)
+        val stream = jdbcTemplate.queryForStream(SearchOrderSql.createSql(whereClause), rowMapper)
         stream.forEach {
             count.getAndIncrement()
             queue.put(it)

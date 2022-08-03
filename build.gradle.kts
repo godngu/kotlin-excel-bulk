@@ -37,6 +37,7 @@ dependencies {
     runtimeOnly("com.h2database:h2")
     runtimeOnly("org.mariadb.jdbc:mariadb-java-client")
     implementation("io.github.microutils:kotlin-logging-jvm:2.1.21")
+    implementation("com.github.gavlyukovskiy:p6spy-spring-boot-starter:1.8.0")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test") {
         exclude(group = "org.junit.vintage", module = "junit-vintage-engine")
