@@ -38,7 +38,7 @@ class OrderService(
             ),
             period = SearchPeriod(
                 LocalDateTime.parse("2022-07-25T00:00:00", formatter),
-                LocalDateTime.parse("2022-07-25T00:01:00", formatter),
+                LocalDateTime.parse("2022-07-25T23:59:59", formatter),
                 defaultDateRange = 1,
                 defaultPeriodUnit = SearchPeriod.PeriodType.DAY,
                 defaultTime = SearchPeriod.TimeType.ELEVEN,
